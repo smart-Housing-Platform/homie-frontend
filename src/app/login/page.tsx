@@ -34,8 +34,8 @@ export default function LoginPage() {
       } else {
         setError('Invalid email or password');
       }
-    } catch (err) {
-      setError('An error occurred during login');
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +136,7 @@ export default function LoginPage() {
           </Button>
 
           <div className="text-center">
-            <span className="text-[#7B341E]/70">Don't have an account? </span>
+            <span className="text-[#7B341E]/70">Don&apos;t have an account? </span>
             <Link
               href="/register"
               className={`text-[#266044] hover:text-[#7B341E] font-medium ${

@@ -42,7 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // In a real app, this would be an actual API call
     const foundUser = mockUsers.find(u => u.email === email);
     
-    if (foundUser) {
+    // Simple mock password validation (in real app, this would be proper password hashing)
+    if (foundUser && password.length > 0) {
       setUser(foundUser);
       localStorage.setItem('user', JSON.stringify(foundUser));
       return { success: true, role: foundUser.role };

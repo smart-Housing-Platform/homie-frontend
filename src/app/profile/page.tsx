@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
-import { mockUsers, type User } from '@/data/mockData';
+import { mockUsers } from '@/data/mockData';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function ProfilePage() {

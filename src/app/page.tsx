@@ -113,7 +113,7 @@ export default function Home() {
         <section className="bg-[#FFE4C9] rounded-xl border-2 border-[#7B341E] shadow-sm px-8 py-20">
           <h2 className="text-3xl font-bold text-center text-[#7B341E] mb-4">Why Choose Homie?</h2>
           <p className="text-center text-[#7B341E] mb-12">
-            We're committed to making your rental experience as smooth and hassle-free as possible.
+            We&apos;re committed to making your rental experience as smooth and hassle-free as possible.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
@@ -141,7 +141,7 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2 text-[#7B341E]">Advanced Filters</h3>
-              <p className="text-[#7B341E]">Find exactly what you're looking for with our detailed search options.</p>
+              <p className="text-[#7B341E]">Find exactly what you&apos;re looking for with our detailed search options.</p>
             </div>
             <div className="text-center">
               <div className="bg-[#E4BB9A] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">

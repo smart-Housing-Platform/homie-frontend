@@ -34,7 +34,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-[#7B341E] text-xl mb-6">
-            We're here to help with any questions you might have.
+            We&apos;re here to help with any questions you might have.
           </p>
         </section>
 
