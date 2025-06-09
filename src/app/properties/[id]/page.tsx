@@ -92,9 +92,9 @@ export default function PropertyDetails() {
     <div className="min-h-screen bg-white">
       {/* Hero Image */}
       <div className="relative h-[60vh] bg-[#7B341E]">
-        <img
-          src={mockProperty.images[selectedImage]}
-          alt={`Property image ${selectedImage + 1}`}
+          <img
+            src={mockProperty.images[selectedImage]}
+            alt={`Property image ${selectedImage + 1}`}
           className="w-full h-full object-cover opacity-90 transition-opacity duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -202,9 +202,9 @@ export default function PropertyDetails() {
                   </svg>
                   <p className="text-[#7B341E] font-medium">Square Feet</p>
                   <p className="text-2xl font-bold text-[#7B341E]">{mockProperty.features.squareFeet}</p>
-                </div>
             </div>
             </div>
+          </div>
 
             {/* Description */}
             <div className="bg-white rounded-xl border-2 border-[#7B341E] shadow-sm p-8">

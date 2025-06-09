@@ -77,7 +77,7 @@ export default function Home() {
                 <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-[#4F1B1C] to-[#B53E41] text-5xl font-bold mb-4">
                   FIND YOUR NEXT HOME<br />
                   SAFELY AND SIMPLY
-                </h1>
+          </h1>
                 <p className="text-black-600 mb-6">
                   Connects Renters And Landlords With Verified Listings,<br />
                   Advanced Filters, And Zero Broker Scams.
