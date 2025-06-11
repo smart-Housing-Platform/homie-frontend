@@ -5,91 +5,51 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { propertyService } from '@/services/property.service';
-import { Property, Application, MaintenanceRequest } from '@/types';
+import { dashboardService } from '@/services/dashboard.service';
+import { Property, Application, MaintenanceRequest, User } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { toast } from 'react-hot-toast';
 import PropertyCard from '@/components/PropertyCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Building2, DollarSign, Users, Activity } from 'lucide-react';
 
-// Mock data (in production, this would come from an API)
-const mockProperties: Property[] = [
-  {
-    _id: '1',
-    title: 'Modern Downtown Apartment',
-    description: 'Luxurious apartment in prime location',
-    listingType: 'rent',
-    price: {
-      amount: 2500,
-      frequency: 'monthly',
-      type: 'fixed'
-    },
-    location: {
-      address: '123 Main St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001'
-    },
-    features: {
-      bedrooms: 2,
-      bathrooms: 2,
-      squareFeet: 1200,
-      propertyType: 'Apartment',
-      parking: 1,
-      furnished: true
-    },
-    amenities: ['Central AC', 'In-unit Laundry'],
-    images: [{ url: '/images/apartment1.jpg', publicId: 'apt1' }],
-    landlordId: 'user1',
-    status: 'available',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '2',
-    title: 'Luxury Waterfront Home',
-    description: 'Beautiful waterfront property',
-    listingType: 'sale',
-    price: {
-      amount: 750000,
-      type: 'negotiable'
-    },
-    location: {
-      address: '456 Ocean Dr',
-      city: 'Miami',
-      state: 'FL',
-      zipCode: '33139'
-    },
-    features: {
-      bedrooms: 4,
-      bathrooms: 3,
-      squareFeet: 2800,
-      propertyType: 'House',
-      parking: 2,
-      furnished: false
-    },
-    amenities: ['Pool', 'Ocean View'],
-    images: [{ url: '/images/house1.jpg', publicId: 'house1' }],
-    landlordId: 'user2',
-    status: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
-
-const mockStats = {
-  totalProperties: 12,
-  activeListings: 8,
-  totalIncome: 25000,
-  occupancyRate: 85
-};
-
 export default function LandlordDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalProperties: 0,
+    activeListings: 0,
+    totalIncome: 0,
+    occupancyRate: 0,
+    totalApplications: 0,
+    pendingApplications: 0
+  });
   const [properties, setProperties] = useState<Property[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [income, setIncome] = useState<{
+    monthly: Array<{
+      month: string;
+      amount: number;
+      transactions: number;
+    }>;
+    yearly: Array<{
+      year: string;
+      amount: number;
+      transactions: number;
+    }>;
+    transactions: Array<{
+      _id: string;
+      date: Date;
+      property: Property;
+      tenant: User;
+      type: string;
+      amount: number;
+    }>;
+  }>({
+    monthly: [],
+    yearly: [],
+    transactions: []
+  });
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     propertyId: string | null;
@@ -101,16 +61,25 @@ export default function LandlordDashboard() {
   });
 
   useEffect(() => {
-    fetchProperties();
+    fetchDashboardData();
   }, []);
 
-  const fetchProperties = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const data = await propertyService.getProperties();
-      setProperties(data);
+      const [statsData, propertiesData, applicationsData, incomeData] = await Promise.all([
+        dashboardService.getLandlordStats(),
+        dashboardService.getLandlordProperties(),
+        dashboardService.getLandlordApplications(),
+        dashboardService.getLandlordIncome()
+      ]);
+
+      setStats(statsData);
+      setProperties(propertiesData);
+      setApplications(applicationsData);
+      setIncome(incomeData);
     } catch (error) {
-      console.error('Error fetching properties:', error);
-      toast.error('Failed to fetch properties');
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
@@ -128,12 +97,22 @@ export default function LandlordDashboard() {
     if (!deleteModal.propertyId) return;
 
     try {
+      console.log('Attempting to delete property:', {
+        propertyId: deleteModal.propertyId,
+        token: localStorage.getItem('token')
+      });
+      
       await propertyService.deleteProperty(deleteModal.propertyId);
       toast.success('Property deleted successfully');
-      fetchProperties(); // Refresh the list
-    } catch (error) {
-      console.error('Error deleting property:', error);
-      toast.error('Failed to delete property');
+      fetchDashboardData(); // Refresh the data
+      setDeleteModal({ isOpen: false, propertyId: null, propertyTitle: '' });
+    } catch (error: any) {
+      console.error('Error deleting property:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        error
+      });
+      toast.error(error.response?.data?.message || 'Failed to delete property');
     }
   };
 
@@ -196,123 +175,251 @@ export default function LandlordDashboard() {
             </div>
           </Card>
 
-        {/* Main Content */}
+          {/* Main Content */}
           <div className="lg:col-span-3">
-            {activeTab === 'overview' && (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7B341E]"></div>
+              </div>
+            ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                      <CardTitle className="text-sm font-medium text-[#7B341E]">Total Properties</CardTitle>
-                      <Building2 className="w-4 h-4 text-[#7B341E]" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-[#7B341E]">{mockStats.totalProperties}</div>
-                      <p className="text-xs text-[#7B341E]/70">
-                        {mockStats.activeListings} active listings
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                      <CardTitle className="text-sm font-medium text-[#7B341E]">Total Income</CardTitle>
-                      <DollarSign className="w-4 h-4 text-[#7B341E]" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-[#7B341E]">
-                        ${mockStats.totalIncome.toLocaleString()}
+                {activeTab === 'overview' && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                          <CardTitle className="text-sm font-medium text-[#7B341E]">Total Properties</CardTitle>
+                          <Building2 className="w-4 h-4 text-[#7B341E]" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-[#7B341E]">{stats.totalProperties}</div>
+                          <p className="text-xs text-[#7B341E]/70">
+                            {stats.activeListings} active listings
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                          <CardTitle className="text-sm font-medium text-[#7B341E]">Total Income</CardTitle>
+                          <DollarSign className="w-4 h-4 text-[#7B341E]" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-[#7B341E]">
+                            ${stats.totalIncome.toLocaleString()}
                           </div>
-                      <p className="text-xs text-[#7B341E]/70">+12% from last month</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                      <CardTitle className="text-sm font-medium text-[#7B341E]">Occupancy Rate</CardTitle>
-                      <Users className="w-4 h-4 text-[#7B341E]" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-[#7B341E]">{mockStats.occupancyRate}%</div>
-                      <p className="text-xs text-[#7B341E]/70">12 occupied units</p>
-                    </CardContent>
-                  </Card>
-                          </div>
+                          <p className="text-xs text-[#7B341E]/70">This month</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                          <CardTitle className="text-sm font-medium text-[#7B341E]">Occupancy Rate</CardTitle>
+                          <Users className="w-4 h-4 text-[#7B341E]" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold text-[#7B341E]">{stats.occupancyRate}%</div>
+                          <p className="text-xs text-[#7B341E]/70">
+                            {properties.filter(p => p.status === 'rented').length} occupied units
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#7B341E]">Recent Applications</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Add recent applications list here */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-[#7B341E]">Recent Applications</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {applications.slice(0, 5).map((application) => (
+                              <div
+                                key={application._id}
+                                className="flex items-center justify-between p-4 bg-[#FFE4C9]/20 rounded-lg"
+                              >
+                                <div>
+                                  <h4 className="font-medium text-[#7B341E]">{application.property.title}</h4>
+                                  <p className="text-sm text-[#7B341E]/70">
+                                    By {application.tenant.name} on {new Date(application.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  application.status === 'approved'
+                                    ? 'bg-[#266044] text-white'
+                                    : 'bg-[#FFE4C9] text-[#7B341E]'
+                                }`}>
+                                  {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-[#7B341E]">Income Overview</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {income.monthly.slice(0, 5).map((month) => (
+                              <div
+                                key={month.month}
+                                className="flex items-center justify-between p-4 bg-[#FFE4C9]/20 rounded-lg"
+                              >
+                                <div>
+                                  <h4 className="font-medium text-[#7B341E]">{month.month}</h4>
+                                  <p className="text-sm text-[#7B341E]/70">{month.transactions} transactions</p>
+                                </div>
+                                <span className="font-medium text-[#7B341E]">
+                                  ${month.amount.toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
+
+                {activeTab === 'properties' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {properties.length === 0 ? (
+                      <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center">
+                        <Building2 className="w-16 h-16 text-[#7B341E]/30 mb-4" />
+                        <h3 className="text-xl font-semibold text-[#7B341E] mb-2">No Properties Listed</h3>
+                        <p className="text-[#7B341E]/70 mb-6">Start building your real estate portfolio by adding your first property.</p>
+                        <Link href="/properties/create">
+                          <Button className="bg-[#7B341E] text-white hover:bg-[#266044]">
+                            Add New Property
+                          </Button>
+                        </Link>
                       </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#7B341E]">Income Overview</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Add income chart here */}
-                    </CardContent>
-                  </Card>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'properties' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {mockProperties.map((property) => (
-                  <PropertyCard key={property._id} property={property} />
-                    ))}
+                    ) : (
+                      properties.map((property) => (
+                        <PropertyCard
+                          key={property._id}
+                          property={property}
+                          isLandlord={true}
+                          onDelete={handleDeleteClick}
+                        />
+                      ))
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'applications' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[#7B341E]">Property Applications</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-[#FFE4C9]">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Property</th>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Applicant</th>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Date</th>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Status</th>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#7B341E]/10">
-                        {/* Add application rows here */}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#7B341E]">Property Applications</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-[#FFE4C9]">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Property</th>
+                              <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Applicant</th>
+                              <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Date</th>
+                              <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Status</th>
+                              <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#7B341E]/10">
+                            {applications.map((application) => (
+                              <tr key={application._id}>
+                                <td className="px-6 py-4 text-sm text-[#7B341E]">{application.property.title}</td>
+                                <td className="px-6 py-4 text-sm text-[#7B341E]">{application.tenant.name}</td>
+                                <td className="px-6 py-4 text-sm text-[#7B341E]">
+                                  {new Date(application.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    application.status === 'approved'
+                                      ? 'bg-[#266044] text-white'
+                                      : 'bg-[#FFE4C9] text-[#7B341E]'
+                                  }`}>
+                                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <Link href={`/applications/${application._id}`}>
+                                    <Button variant="outline" size="sm" className="border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white">
+                                      View Details
+                                    </Button>
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-            {activeTab === 'income' && (
-              <div className="space-y-8">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-[#7B341E]">Income Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Add income charts and stats here */}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-[#7B341E]">Recent Transactions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Add transactions table here */}
-                  </CardContent>
-                </Card>
+                {activeTab === 'income' && (
+                  <div className="space-y-8">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-[#7B341E]">Income Overview</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {income.monthly.map((month) => (
+                            <div
+                              key={month.month}
+                              className="flex items-center justify-between p-4 bg-[#FFE4C9]/20 rounded-lg"
+                            >
+                              <div>
+                                <h4 className="font-medium text-[#7B341E]">{month.month}</h4>
+                                <p className="text-sm text-[#7B341E]/70">{month.transactions} transactions</p>
+                              </div>
+                              <span className="font-medium text-[#7B341E]">
+                                ${month.amount.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-[#7B341E]">Recent Transactions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-[#FFE4C9]">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Date</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Property</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Tenant</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Type</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#7B341E]/10">
+                              {income.transactions.map((transaction) => (
+                                <tr key={transaction._id}>
+                                  <td className="px-6 py-4 text-sm text-[#7B341E]">
+                                    {new Date(transaction.date).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-[#7B341E]">{transaction.property.title}</td>
+                                  <td className="px-6 py-4 text-sm text-[#7B341E]">{transaction.tenant.name}</td>
+                                  <td className="px-6 py-4 text-sm text-[#7B341E]">{transaction.type}</td>
+                                  <td className="px-6 py-4 text-sm text-[#7B341E]">
+                                    ${transaction.amount.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
+                )}
+              </>
             )}
           </div>
         </div>

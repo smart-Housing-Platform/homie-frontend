@@ -17,6 +17,8 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [isLoading, setIsLoading] = useState(true);
   const [property, setProperty] = useState<Property | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -26,6 +28,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
 
   useEffect(() => {
     fetchProperty();
+    checkIfSaved();
   }, [params.id]);
 
   const fetchProperty = async () => {
@@ -40,6 +43,35 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       toast.error('Failed to fetch property details');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkIfSaved = async () => {
+    try {
+      const saved = await propertyService.isSaved(params.id);
+      setIsSaved(saved);
+    } catch (error) {
+      console.error('Error checking saved status:', error);
+    }
+  };
+
+  const handleSaveProperty = async () => {
+    try {
+      setIsSaving(true);
+      if (isSaved) {
+        await propertyService.unsaveProperty(params.id);
+        setIsSaved(false);
+        toast.success('Property removed from saved list');
+      } else {
+        await propertyService.saveProperty(params.id);
+        setIsSaved(true);
+        toast.success('Property saved successfully');
+      }
+    } catch (error: any) {
+      console.error('Error saving property:', error);
+      toast.error(error.response?.data?.message || 'Failed to save property');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -275,9 +307,21 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white"
+                  className={`w-full border-2 ${
+                    isSaved 
+                      ? 'border-[#266044] text-[#266044] hover:bg-[#266044]' 
+                      : 'border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E]'
+                  } hover:text-white`}
+                  onClick={handleSaveProperty}
+                  disabled={isSaving}
                 >
-                  Save Property
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  ) : isSaved ? (
+                    'Saved'
+                  ) : (
+                    'Save Property'
+                  )}
                 </Button>
               </div>
             ) : (

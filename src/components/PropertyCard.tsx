@@ -2,13 +2,24 @@ import { Property } from '@/types';
 import Link from 'next/link';
 import { Badge } from './ui/Badge';
 import { formatPrice } from '@/utils/formatters';
+import Button from './ui/Button';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
   variant?: 'grid' | 'list';
+  showActions?: boolean;
+  onDelete?: (propertyId: string, propertyTitle: string) => void;
+  isLandlord?: boolean;
 }
 
-export default function PropertyCard({ property, variant = 'grid' }: PropertyCardProps) {
+export default function PropertyCard({ 
+  property, 
+  variant = 'grid', 
+  showActions = true,
+  onDelete,
+  isLandlord = false 
+}: PropertyCardProps) {
   const isGridView = variant === 'grid';
   
   const getPriceDisplay = () => {
@@ -42,12 +53,9 @@ export default function PropertyCard({ property, variant = 'grid' }: PropertyCar
   };
 
   return (
-    <Link
-      href={`/properties/${property._id}`}
-      className={`block group transform transition-transform duration-300 hover:-translate-y-1 ${
-        isGridView ? 'h-full' : 'flex gap-6'
-      }`}
-    >
+    <div className={`block group transform transition-transform duration-300 hover:-translate-y-1 ${
+      isGridView ? 'h-full' : 'flex gap-6'
+    }`}>
       <div className={`bg-white rounded-xl border-2 border-[#7B341E] shadow-sm overflow-hidden ${
         isGridView ? '' : 'flex'
       }`}>
@@ -63,7 +71,7 @@ export default function PropertyCard({ property, variant = 'grid' }: PropertyCar
           </div>
         </div>
         
-        <div className={`p-6 ${isGridView ? '' : 'flex-1'}`}>
+        <div className="p-4">
           <h3 className="text-lg font-semibold text-[#7B341E] group-hover:text-[#266044]">
             {property.title}
           </h3>
@@ -97,14 +105,6 @@ export default function PropertyCard({ property, variant = 'grid' }: PropertyCar
               </svg>
               {property.features.squareFeet} sqft
             </span>
-            {property.features.parking > 0 && (
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6 6V4c0-1.1.9-2 2-2h4a2 2 0 012 2v2h2a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8c0-1.1.9-2 2-2h2zm0 2H4v8h12V8h-2v2H6V8zm2-4v4h4V4H8z" />
-                </svg>
-                {property.features.parking} parking
-              </span>
-            )}
           </div>
           
           {property.features.furnished && (
@@ -114,8 +114,40 @@ export default function PropertyCard({ property, variant = 'grid' }: PropertyCar
               </span>
             </div>
           )}
+
+          {showActions && (
+            <div className="mt-4 flex gap-2">
+              <Link href={`/properties/${property._id}`} className="flex-1">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-2 border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white"
+                >
+                  View Details
+                </Button>
+              </Link>
+              {isLandlord && (
+                <>
+                  <Link href={`/properties/edit/${property._id}`}>
+                    <Button 
+                      variant="outline"
+                      className="border-2 border-[#266044] text-[#266044] hover:bg-[#266044] hover:text-white"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline"
+                    className="border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                    onClick={() => onDelete?.(property._id, property.title)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 } 

@@ -64,7 +64,9 @@ export interface PropertyFilter {
 export interface Application {
   _id: string;
   propertyId: string;
+  property: Property;
   tenantId: string;
+  tenant: User;
   status: 'pending' | 'approved' | 'rejected';
   creditScore: number;
   income: number;

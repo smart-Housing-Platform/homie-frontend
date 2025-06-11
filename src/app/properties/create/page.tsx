@@ -136,7 +136,13 @@ export default function CreateProperty() {
       toast.success('Property created successfully!');
       router.push('/dashboard/landlord');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create property');
+      console.error('Create property error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create property';
+      if (Array.isArray(error.response?.data?.errors)) {
+        error.response.data.errors.forEach((err: string) => toast.error(err));
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }

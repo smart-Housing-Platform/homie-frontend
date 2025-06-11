@@ -1,65 +1,64 @@
 import api from './api';
+import propertyApi from './propertyApi';
 import { Property, PropertyFilter } from '@/types';
 
 export const propertyService = {
-  async getProperties(filter?: PropertyFilter) {
-    try {
-      const response = await api.get('/properties', { params: filter });
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch properties');
-    }
+  async getProperties(filters?: PropertyFilter): Promise<Property[]> {
+    const response = await api.get('/properties', { params: filters });
+    return response.data;
   },
 
   async getProperty(id: string): Promise<Property> {
-    try {
-      const response = await api.get(`/properties/${id}`);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch property details');
-    }
+    const response = await api.get(`/properties/${id}`);
+    return response.data;
   },
 
-  async createProperty(formData: FormData) {
-    // Debug logs
-    console.log('Form data entries:');
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
-
-    try {
-      const response = await api.post('/properties', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          'Failed to create property listing';
-      throw new Error(errorMessage);
-    }
+  async createProperty(data: FormData): Promise<Property> {
+    const response = await propertyApi.post('/properties', data);
+    return response.data;
   },
 
-  async updateProperty(id: string, data: Partial<Property> | FormData) {
-    try {
-      const headers = data instanceof FormData 
-        ? { 'Content-Type': 'multipart/form-data' }
-        : { 'Content-Type': 'application/json' };
+  async updateProperty(id: string, data: any): Promise<Property> {
+    const formData = new FormData();
+    
+    // Convert the data object to FormData
+    formData.append('title', data.title);
+    formData.append('description', data.description);
+    formData.append('listingType', data.listingType);
+    formData.append('price', JSON.stringify(data.price));
+    formData.append('location', JSON.stringify(data.location));
+    formData.append('features', JSON.stringify(data.features));
+    formData.append('amenities', JSON.stringify(data.amenities));
 
-      const response = await api.put(`/properties/${id}`, data, { headers });
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to update property');
+    // Append any new images if they exist
+    if (data.images) {
+      for (const image of data.images) {
+        formData.append('images', image);
+      }
     }
+
+    const response = await propertyApi.put(`/properties/${id}`, formData);
+    return response.data;
   },
 
-  async deleteProperty(id: string) {
+  async deleteProperty(id: string): Promise<void> {
+    await propertyApi.delete(`/properties/${id}`);
+  },
+
+  async saveProperty(id: string): Promise<void> {
+    await api.post(`/properties/${id}/save`);
+  },
+
+  async unsaveProperty(id: string): Promise<void> {
+    await api.delete(`/properties/${id}/save`);
+  },
+
+  async isSaved(id: string): Promise<boolean> {
     try {
-      await api.delete(`/properties/${id}`);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to delete property');
+      const response = await api.get(`/properties/${id}/saved`);
+      return response.data.saved;
+    } catch (error) {
+      return false;
     }
   }
 }; 
