@@ -1,82 +1,96 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { type User, mockUsers } from '@/data/mockData';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '@/types';
+import { authService, LoginCredentials, RegisterData } from '@/services/auth.service';
+import { toast } from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; role?: string }>;
-  register: (userData: RegisterData) => Promise<{ success: boolean; role?: string }>;
-  logout: () => void;
   isLoading: boolean;
-}
-
-interface RegisterData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-  userType: 'tenant' | 'landlord';
+  login: (email: string, password: string) => Promise<{ success: boolean; role?: string }>;
+  register: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone: string;
+    userType: 'tenant' | 'landlord';
+  }) => Promise<{ success: boolean; role?: string }>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    // Check for saved auth state in localStorage
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    const initAuth = async () => {
+      try {
+        if (authService.isAuthenticated()) {
+          const user = await authService.getProfile();
+          setUser(user);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        authService.logout();
+        toast.error('Session expired. Please login again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Simulate API call with mock data
-    // In a real app, this would be an actual API call
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    // Simple mock password validation (in real app, this would be proper password hashing)
-    if (foundUser && password.length > 0) {
-      setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
-      return { success: true, role: foundUser.role };
+    try {
+      const user = await authService.login({ email, password });
+      setUser(user);
+      toast.success('Welcome back! Successfully logged in.');
+      return { success: true, role: user.role };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      toast.error(errorMessage);
+      throw error;
     }
-    return { success: false };
   };
 
-  const register = async (userData: RegisterData) => {
-    // Simulate API call
-    // In a real app, this would be an actual API call to create a new user
-    const newUser: User = {
-      id: String(mockUsers.length + 1),
-      name: `${userData.firstName} ${userData.lastName}`,
-      email: userData.email,
-      role: userData.userType,
-      phone: userData.phone,
-      verified: false,
-      createdAt: new Date().toISOString()
-    };
-
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    return { success: true, role: userData.userType };
+  const register = async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone: string;
+    userType: 'tenant' | 'landlord';
+  }) => {
+    try {
+      const user = await authService.register({
+        name: `${data.firstName} ${data.lastName}`,
+        email: data.email,
+        password: data.password,
+        role: data.userType
+      });
+      setUser(user);
+      toast.success('Registration successful! Welcome to Homie.');
+      return { success: true, role: user.role };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
+      throw error;
+    }
   };
 
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem('user');
-    router.push('/login');
+    toast.success('Successfully logged out. See you soon!');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,206 +2,315 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Property } from '@/types';
+import PropertyCard from '@/components/PropertyCard';
 import Button from '@/components/ui/Button';
-import { mockProperties, mockApplications, mockMaintenanceRequests, type Property, type Application, type MaintenanceRequest } from '@/data/mockData';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Home, Heart, FileText, Bell } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function TenantDashboard() {
-  const [activeTab, setActiveTab] = useState('saved');
+// Mock data (in production, this would come from an API)
+const mockSavedProperties: Property[] = [
+  {
+    _id: '1',
+    title: 'Modern Downtown Apartment',
+    description: 'Luxurious apartment in prime location',
+    listingType: 'rent',
+    price: {
+      amount: 2500,
+      frequency: 'monthly',
+      type: 'fixed'
+    },
+    location: {
+      address: '123 Main St',
+      city: 'New York',
+      state: 'NY',
+      zipCode: '10001'
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 2,
+      squareFeet: 1200,
+      propertyType: 'Apartment',
+      parking: 1,
+      furnished: true
+    },
+    amenities: ['Central AC', 'In-unit Laundry'],
+    images: [{ url: '/images/apartment1.jpg', publicId: 'apt1' }],
+    landlordId: 'user1',
+    status: 'available',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: '2',
+    title: 'Luxury Waterfront Home',
+    description: 'Beautiful waterfront property',
+    listingType: 'sale',
+    price: {
+      amount: 750000,
+      type: 'negotiable'
+    },
+    location: {
+      address: '456 Ocean Dr',
+      city: 'Miami',
+      state: 'FL',
+      zipCode: '33139'
+    },
+    features: {
+      bedrooms: 4,
+      bathrooms: 3,
+      squareFeet: 2800,
+      propertyType: 'House',
+      parking: 2,
+      furnished: false
+    },
+    amenities: ['Pool', 'Ocean View'],
+    images: [{ url: '/images/house1.jpg', publicId: 'house1' }],
+    landlordId: 'user2',
+    status: 'available',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
 
-  const savedProperties = mockProperties.slice(0, 3); // Mock saved properties
-  const applications = mockApplications;
-  const maintenanceRequests = mockMaintenanceRequests;
+const mockApplications = [
+  {
+    id: '1',
+    property: 'Modern Downtown Apartment',
+    status: 'pending',
+    submittedDate: '2024-02-15',
+    landlord: 'John Doe'
+  },
+  {
+    id: '2',
+    property: 'Luxury Waterfront Home',
+    status: 'approved',
+    submittedDate: '2024-02-10',
+    landlord: 'Jane Smith'
+  }
+];
+
+export default function TenantDashboard() {
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <ProtectedRoute allowedRoles={['tenant']}>
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r-2 border-[#7B341E]/20 min-h-screen">
-          <nav className="mt-8 px-4">
-            <div className="space-y-2">
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-[#7B341E]">Tenant Dashboard</h1>
+          <Link href="/properties">
+            <Button className="bg-[#7B341E] text-white hover:bg-[#266044]">
+              Browse Properties
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar Navigation */}
+          <Card className="lg:col-span-1 h-fit sticky top-8">
+            <div className="p-6 space-y-2">
               <button
+                onClick={() => setActiveTab('overview')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === 'overview'
+                    ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
+                    : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('saved')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'saved'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('saved')}
               >
                 Saved Properties
               </button>
               <button
+                onClick={() => setActiveTab('applications')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'applications'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('applications')}
               >
-                Applications
+                My Applications
               </button>
               <button
+                onClick={() => setActiveTab('notifications')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'maintenance'
+                  activeTab === 'notifications'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('maintenance')}
               >
-                Maintenance Requests
+                Notifications
               </button>
             </div>
-          </nav>
-        </div>
+          </Card>
 
         {/* Main Content */}
-        <div className="flex-1">
-          {/* Header */}
-          <div className="bg-white border-b-2 border-[#7B341E]/20 px-8 py-6">
-            <h1 className="text-2xl font-bold text-[#7B341E]">
-              {activeTab === 'saved' && 'Saved Properties'}
-              {activeTab === 'applications' && 'My Applications'}
-              {activeTab === 'maintenance' && 'Maintenance Requests'}
-            </h1>
-          </div>
-
-          {/* Content */}
-          <div className="p-8">
-            {activeTab === 'saved' && (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {savedProperties.map((property: Property) => (
-                  <Link
-                    key={property.id}
-                    href={`/properties/${property.id}`}
-                    className="block group"
-                  >
-                    <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm overflow-hidden transition-all duration-200 hover:border-[#7B341E] hover:shadow-md">
-                      <div className="aspect-w-16 aspect-h-9 relative">
-                        <img
-                          src={property.images[0]}
-                          alt={property.title}
-                          className="object-cover"
-                        />
-                        <div className="absolute top-4 right-4 bg-[#7B341E] text-white px-3 py-1 rounded-full text-sm font-medium">
-                          {property.features.propertyType}
-                        </div>
+          <div className="lg:col-span-3">
+            {activeTab === 'overview' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Saved Properties</CardTitle>
+                      <Heart className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">{mockSavedProperties.length}</div>
+                      <p className="text-xs text-[#7B341E]/70">
+                        {mockSavedProperties.filter(p => p.status === 'available').length} available
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Active Applications</CardTitle>
+                      <FileText className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">
+                        {mockApplications.filter(a => a.status === 'pending').length}
                       </div>
-                      <div className="p-6">
-                        <h3 className="text-lg font-semibold text-[#7B341E] group-hover:text-[#266044]">
-                          {property.title}
-                        </h3>
-                        <p className="mt-1 text-[#7B341E]/70">{property.location.city}</p>
-                        <div className="mt-4 flex items-center justify-between">
-                          <p className="text-xl font-bold text-[#266044]">
-                            ${property.price}/mo
-                          </p>
-                          <div className="flex items-center space-x-4 text-[#7B341E]/70">
-                            <span className="flex items-center">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                              </svg>
-                              {property.features.bedrooms} bd
-                            </span>
-                            <span className="flex items-center">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v3h3a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V6a1 1 0 011-1h3V2zm10 6H5v8h10V8zm-2-5H7v3h6V3z" clipRule="evenodd" />
-                              </svg>
-                              {property.features.bathrooms} ba
+                      <p className="text-xs text-[#7B341E]/70">2 this week</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Property Views</CardTitle>
+                      <Home className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">24</div>
+                      <p className="text-xs text-[#7B341E]/70">Last 30 days</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">New Notifications</CardTitle>
+                      <Bell className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">3</div>
+                      <p className="text-xs text-[#7B341E]/70">1 unread message</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#7B341E]">Recent Applications</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {mockApplications.map((application) => (
+                          <div
+                            key={application.id}
+                            className="flex items-center justify-between p-4 bg-[#FFE4C9]/20 rounded-lg"
+                          >
+                            <div>
+                              <h4 className="font-medium text-[#7B341E]">{application.property}</h4>
+                              <p className="text-sm text-[#7B341E]/70">Submitted on {application.submittedDate}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              application.status === 'approved' 
+                                ? 'bg-[#266044] text-white' 
+                                : 'bg-[#FFE4C9] text-[#7B341E]'
+                            }`}>
+                              {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                             </span>
                           </div>
+                        ))}
                         </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#7B341E]">Property Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Add property recommendations here */}
                       </div>
+                    </CardContent>
+                  </Card>
                     </div>
-                  </Link>
+              </>
+            )}
+
+            {activeTab === 'saved' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {mockSavedProperties.map((property) => (
+                  <PropertyCard key={property._id} property={property} />
                 ))}
               </div>
             )}
 
             {activeTab === 'applications' && (
-              <div className="space-y-6">
-                {applications.map((application: Application) => {
-                  const property = mockProperties.find((p: Property) => p.id === application.propertyId);
-                  return (
-                    <div key={application.id} className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xl font-semibold text-[#7B341E]">
-                            {property?.title}
-                          </h3>
-                          <p className="text-[#7B341E]/70 mt-1">
-                            Application submitted on {new Date(application.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#7B341E]">My Applications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#FFE4C9]">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Property</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Landlord</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Submitted</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Status</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#7B341E]/10">
+                        {mockApplications.map((application) => (
+                          <tr key={application.id}>
+                            <td className="px-6 py-4 text-sm text-[#7B341E]">{application.property}</td>
+                            <td className="px-6 py-4 text-sm text-[#7B341E]">{application.landlord}</td>
+                            <td className="px-6 py-4 text-sm text-[#7B341E]">{application.submittedDate}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             application.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
-                              : application.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
+                                  ? 'bg-[#266044] text-white' 
+                                  : 'bg-[#FFE4C9] text-[#7B341E]'
                           }`}>
                             {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                           </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Button variant="outline" size="sm" className="border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white">
+                                View Details
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                </CardContent>
+              </Card>
             )}
 
-            {activeTab === 'maintenance' && (
-              <div className="space-y-6">
-                {maintenanceRequests.map((request: MaintenanceRequest) => {
-                  const property = mockProperties.find((p: Property) => p.id === request.propertyId);
-                  return (
-                    <div key={request.id} className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xl font-semibold text-[#7B341E]">
-                            {request.title}
-                          </h3>
-                          <p className="text-[#7B341E]/70 mt-1">
-                            {property?.title}
-                          </p>
-                          <p className="text-[#7B341E]/70 mt-2">
-                            {request.description}
-                          </p>
+            {activeTab === 'notifications' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#7B341E]">Notifications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Add notifications list here */}
                         </div>
-                        <div className="flex flex-col items-end space-y-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            request.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : request.status === 'in_progress'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {request.status.split('_').map((word: string) => 
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                            ).join(' ')}
-                          </span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            request.priority === 'high'
-                              ? 'bg-red-100 text-red-800'
-                              : request.priority === 'medium'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)} Priority
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="flex justify-center mt-8">
-                  <Button 
-                    className="bg-[#7B341E] hover:bg-[#266044] text-white transition-colors px-8 py-3 text-lg"
-                  >
-                    Create New Request
-                  </Button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>

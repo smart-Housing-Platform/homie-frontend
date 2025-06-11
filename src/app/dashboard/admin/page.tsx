@@ -1,12 +1,91 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { Property } from '@/types';
+import PropertyCard from '@/components/PropertyCard';
 import Button from '@/components/ui/Button';
-import { mockUsers, mockProperties, mockApplications, type User, type Property, type Application } from '@/data/mockData';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Building2, DollarSign, Users, Activity } from 'lucide-react';
+import { mockUsers, mockProperties, mockApplications, type User, type Application } from '@/data/mockData';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
+// Mock data (in production, this would come from an API)
+const mockProperties: Property[] = [
+  {
+    _id: '1',
+    title: 'Modern Downtown Apartment',
+    description: 'Luxurious apartment in prime location',
+    listingType: 'rent',
+    price: {
+      amount: 2500,
+      frequency: 'monthly',
+      type: 'fixed'
+    },
+    location: {
+      address: '123 Main St',
+      city: 'New York',
+      state: 'NY',
+      zipCode: '10001'
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 2,
+      squareFeet: 1200,
+      propertyType: 'Apartment',
+      parking: 1,
+      furnished: true
+    },
+    amenities: ['Central AC', 'In-unit Laundry'],
+    images: [{ url: '/images/apartment1.jpg', publicId: 'apt1' }],
+    landlordId: 'user1',
+    status: 'pending',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: '2',
+    title: 'Luxury Waterfront Home',
+    description: 'Beautiful waterfront property',
+    listingType: 'sale',
+    price: {
+      amount: 750000,
+      type: 'negotiable'
+    },
+    location: {
+      address: '456 Ocean Dr',
+      city: 'Miami',
+      state: 'FL',
+      zipCode: '33139'
+    },
+    features: {
+      bedrooms: 4,
+      bathrooms: 3,
+      squareFeet: 2800,
+      propertyType: 'House',
+      parking: 2,
+      furnished: false
+    },
+    amenities: ['Pool', 'Ocean View'],
+    images: [{ url: '/images/house1.jpg', publicId: 'house1' }],
+    landlordId: 'user2',
+    status: 'pending',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
+
+const mockStats = {
+  totalUsers: 150,
+  newUsersThisMonth: 25,
+  totalProperties: 85,
+  pendingApprovals: 12,
+  totalTransactions: 45,
+  revenue: 25000
+};
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Filter unverified users
   const unverifiedUsers = mockUsers.filter((user: User) => !user.verified);
@@ -25,207 +104,222 @@ export default function AdminDashboard() {
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r-2 border-[#7B341E]/20 min-h-screen">
-          <nav className="mt-8 px-4">
-            <div className="space-y-2">
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-[#7B341E]">Admin Dashboard</h1>
+          <div className="flex gap-4">
+            <Link href="/users/create">
+              <Button variant="outline" className="border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white">
+                Add User
+              </Button>
+            </Link>
+            <Link href="/settings">
+              <Button className="bg-[#7B341E] text-white hover:bg-[#266044]">
+                Settings
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar Navigation */}
+          <Card className="lg:col-span-1 h-fit sticky top-8">
+            <div className="p-6 space-y-2">
               <button
+                onClick={() => setActiveTab('overview')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'users'
+                  activeTab === 'overview'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('users')}
               >
-                User Verification
+                Overview
               </button>
               <button
+                onClick={() => setActiveTab('properties')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'properties'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('properties')}
               >
-                Property Approval
+                Properties
               </button>
               <button
+                onClick={() => setActiveTab('users')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === 'applications'
+                  activeTab === 'users'
                     ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
                     : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
                 }`}
-                onClick={() => setActiveTab('applications')}
               >
-                Recent Applications
+                Users
+              </button>
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === 'transactions'
+                    ? 'bg-[#FFE4C9] text-[#7B341E] font-medium'
+                    : 'text-[#7B341E]/70 hover:bg-[#FFE4C9]/50 hover:text-[#7B341E]'
+                }`}
+              >
+                Transactions
               </button>
             </div>
-          </nav>
-        </div>
+          </Card>
 
         {/* Main Content */}
-        <div className="flex-1">
-          {/* Header */}
-          <div className="bg-white border-b-2 border-[#7B341E]/20 px-8 py-6">
-            <h1 className="text-2xl font-bold text-[#7B341E]">
-              {activeTab === 'users' && 'User Verification'}
-              {activeTab === 'properties' && 'Property Approval'}
-              {activeTab === 'applications' && 'Recent Applications'}
-            </h1>
+          <div className="lg:col-span-3">
+            {activeTab === 'overview' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Total Users</CardTitle>
+                      <Users className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">{mockStats.totalUsers}</div>
+                      <p className="text-xs text-[#7B341E]/70">
+                        +{mockStats.newUsersThisMonth} this month
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Total Properties</CardTitle>
+                      <Building2 className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">{mockStats.totalProperties}</div>
+                      <p className="text-xs text-[#7B341E]/70">
+                        {mockStats.pendingApprovals} pending approvals
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Total Revenue</CardTitle>
+                      <DollarSign className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">
+                        ${mockStats.revenue.toLocaleString()}
           </div>
-
-          {/* Content */}
-          <div className="p-8">
-            {/* Analytics Overview */}
-            <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Total Users</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.totalUsers}</p>
-              </div>
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Total Properties</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.totalProperties}</p>
-              </div>
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Total Applications</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.totalApplications}</p>
-              </div>
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Occupancy Rate</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.occupancyRate}</p>
-              </div>
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Average Rent</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.averageRent}</p>
-              </div>
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm p-6 transition-all duration-200 hover:border-[#7B341E]">
-                <h3 className="text-lg font-medium text-[#7B341E]">Active Leases</h3>
-                <p className="mt-2 text-3xl font-bold text-[#266044]">{analytics.activeLeases}</p>
-              </div>
-            </div>
-
-            {activeTab === 'users' && (
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b-2 border-[#7B341E]/20">
-                  <h2 className="text-xl font-semibold text-[#7B341E]">Pending User Verifications</h2>
+                      <p className="text-xs text-[#7B341E]/70">
+                        {mockStats.totalTransactions} transactions
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium text-[#7B341E]">Activity</CardTitle>
+                      <Activity className="w-4 h-4 text-[#7B341E]" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-[#7B341E]">85%</div>
+                      <p className="text-xs text-[#7B341E]/70">+2% from last month</p>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="divide-y-2 divide-[#7B341E]/20">
-                  {unverifiedUsers.map((user: User) => (
-                    <div key={user.id} className="p-6 flex items-center justify-between hover:bg-gray-50">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-full bg-[#7B341E] flex items-center justify-center text-white text-xl font-bold">
-                          {user.name.charAt(0)}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-medium text-[#7B341E]">{user.name}</h3>
-                          <p className="text-[#7B341E]/70">{user.email}</p>
-                          <p className="text-[#7B341E]/70 text-sm">Role: {user.role}</p>
-                        </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#7B341E]">Recent Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Add recent activity list here */}
                       </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          className="bg-[#266044] hover:bg-[#4DC68C] text-white transition-colors px-4 py-2"
-                        >
-                          Verify
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2"
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#7B341E]">Revenue Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Add revenue chart here */}
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
+              </>
             )}
 
             {activeTab === 'properties' && (
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b-2 border-[#7B341E]/20">
-                  <h2 className="text-xl font-semibold text-[#7B341E]">Pending Property Approvals</h2>
-                </div>
-                <div className="divide-y-2 divide-[#7B341E]/20">
-                  {pendingProperties.map((property: Property) => (
-                    <div key={property.id} className="p-6 hover:bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex space-x-4">
-                          <img
-                            src={property.images[0]}
-                            alt={property.title}
-                            className="w-24 h-24 object-cover rounded-lg"
-                          />
-                          <div>
-                            <h3 className="text-lg font-medium text-[#7B341E]">{property.title}</h3>
-                            <p className="text-[#7B341E]/70">{property.location.address}</p>
-                            <p className="text-[#7B341E]/70">
-                              {property.features.bedrooms} beds • {property.features.bathrooms} baths • {property.features.squareFeet} sqft
-                            </p>
-                            <p className="text-lg font-semibold text-[#266044] mt-2">${property.price}/mo</p>
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button 
-                            className="bg-[#266044] hover:bg-[#4DC68C] text-white transition-colors px-4 py-2"
-                          >
-                            Approve
-                          </Button>
-                          <Button 
-                            variant="outline"
-                            className="border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#7B341E]">Pending Property Approvals</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {mockProperties.map((property) => (
+                      <PropertyCard key={property._id} property={property} />
                   ))}
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
-            {activeTab === 'applications' && (
-              <div className="bg-white rounded-xl border-2 border-[#7B341E]/20 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b-2 border-[#7B341E]/20">
-                  <h2 className="text-xl font-semibold text-[#7B341E]">Recent Applications</h2>
+            {activeTab === 'users' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#7B341E]">User Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#FFE4C9]">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Name</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Email</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Role</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Status</th>
+                          <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#7B341E]/10">
+                        {/* Add user rows here */}
+                      </tbody>
+                    </table>
+              </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'transactions' && (
+              <div className="space-y-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#7B341E]">Transaction Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Add transaction charts here */}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#7B341E]">Recent Transactions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-[#FFE4C9]">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">ID</th>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Date</th>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Type</th>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Amount</th>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-[#7B341E]">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#7B341E]/10">
+                          {/* Add transaction rows here */}
+                        </tbody>
+                      </table>
                 </div>
-                <div className="divide-y-2 divide-[#7B341E]/20">
-                  {recentApplications.map((application: Application) => {
-                    const property = mockProperties.find((p: Property) => p.id === application.propertyId);
-                    const tenant = mockUsers.find((u: User) => u.id === application.tenantId);
-                    return (
-                      <div key={application.id} className="p-6 hover:bg-gray-50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-lg font-medium text-[#7B341E]">{property?.title}</h3>
-                            <p className="text-[#7B341E]/70">
-                              Applicant: {tenant?.name}
-                            </p>
-                            <div className="mt-2">
-                              <p className="text-[#7B341E]/70">
-                                Credit Score: <span className="font-medium text-[#7B341E]">{application.creditScore}</span>
-                              </p>
-                              <p className="text-[#7B341E]/70">
-                                Annual Income: <span className="font-medium text-[#7B341E]">${application.income?.toLocaleString()}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            application.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
-                              : application.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>

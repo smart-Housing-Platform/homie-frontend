@@ -1,54 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Property } from '@/types';
 import Button from '@/components/ui/Button';
+import { toast } from 'react-hot-toast';
+import { Card } from '@/components/ui/Card';
+import { formatPrice } from '@/utils/formatters';
+import { MapPin, Bed, Bath, Square, Car, Home, Check, Loader2 } from 'lucide-react';
+import { propertyService } from '@/services/property.service';
 
-// Mock property data (in real app, this would be fetched from an API)
-const mockProperty = {
-  id: '1',
-  title: 'Modern Downtown Apartment',
-  description: 'Beautiful modern apartment in the heart of downtown. Recently renovated with high-end finishes and appliances. Perfect for young professionals or couples.',
-  price: 2500,
-  location: {
-    address: '123 Main Street',
-    city: 'Downtown',
-    state: 'NY',
-    zipCode: '10001',
-  },
-  features: {
-    bedrooms: 2,
-    bathrooms: 2,
-    squareFeet: 1200,
-    propertyType: 'Apartment',
-    yearBuilt: 2015,
-  },
-  amenities: [
-    'Central Air',
-    'In-unit Laundry',
-    'Dishwasher',
-    'Hardwood Floors',
-    'Parking',
-    'Gym',
-    'Pet Friendly',
-  ],
-  images: [
-    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop',
-  ],
-  landlord: {
-    id: '123',
-    name: 'John Doe',
-    phone: '(555) 123-4567',
-    email: 'john@example.com',
-  },
-};
-
-export default function PropertyDetails() {
+export default function PropertyDetailsPage({ params }: { params: { id: string } }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showContactForm, setShowContactForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -56,296 +24,315 @@ export default function PropertyDetails() {
     message: '',
   });
 
+  useEffect(() => {
+    fetchProperty();
+  }, [params.id]);
+
+  const fetchProperty = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await propertyService.getProperty(params.id);
+      setProperty(data);
+    } catch (error: any) {
+      console.error('Error fetching property:', error);
+      setError(error.message || 'Failed to fetch property details');
+      toast.error('Failed to fetch property details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Auto-advance images every 5 seconds when isPlaying is true
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !property) return;
 
     const interval = setInterval(() => {
       setSelectedImage((current) => 
-        current === mockProperty.images.length - 1 ? 0 : current + 1
+        current === property.images.length - 1 ? 0 : current + 1
       );
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying, property]);
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
     // TODO: Implement contact form submission
-    console.log('Contact form submitted:', contactForm);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulating API call
+      toast.success('Message sent successfully! The landlord will contact you soon.');
     setShowContactForm(false);
+      setContactForm({
+        name: '',
+        email: '',
+        phone: '',
+        message: '',
+      });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send message');
+    }
+  };
+
+  const handleScheduleViewing = async () => {
+    try {
+      // TODO: Implement viewing scheduling
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulating API call
+      toast.success('Viewing request sent! The landlord will confirm the appointment.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to schedule viewing');
+    }
   };
 
   const handlePrevImage = () => {
+    if (!property) return;
     setSelectedImage((current) => 
-      current === 0 ? mockProperty.images.length - 1 : current - 1
+      current === 0 ? property.images.length - 1 : current - 1
     );
   };
 
   const handleNextImage = () => {
+    if (!property) return;
     setSelectedImage((current) => 
-      current === mockProperty.images.length - 1 ? 0 : current + 1
+      current === property.images.length - 1 ? 0 : current + 1
     );
   };
 
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Image */}
-      <div className="relative h-[60vh] bg-[#7B341E]">
-          <img
-            src={mockProperty.images[selectedImage]}
-            alt={`Property image ${selectedImage + 1}`}
-          className="w-full h-full object-cover opacity-90 transition-opacity duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        
-        {/* Image Navigation Controls */}
-        <div className="absolute inset-x-0 bottom-1/2 flex justify-between items-center px-4">
-          <button
-            onClick={handlePrevImage}
-            className="p-2 rounded-full bg-white/80 hover:bg-white text-[#7B341E] transition-colors"
-            aria-label="Previous image"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={handleNextImage}
-            className="p-2 rounded-full bg-white/80 hover:bg-white text-[#7B341E] transition-colors"
-            aria-label="Next image"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Slideshow Controls */}
-        <div className="absolute bottom-4 right-4 flex items-center space-x-2">
-          <span className="px-3 py-1 rounded-full bg-white/80 text-[#7B341E] text-sm font-medium">
-            {selectedImage + 1} / {mockProperty.images.length}
-          </span>
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="p-2 rounded-full bg-white/80 hover:bg-white text-[#7B341E] transition-colors"
-            aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
-          >
-            {isPlaying ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold mb-2">{mockProperty.title}</h1>
-            <p className="text-lg opacity-90">
-              {mockProperty.location.address}, {mockProperty.location.city}, {mockProperty.location.state} {mockProperty.location.zipCode}
-            </p>
-          </div>
-        </div>
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-[#7B341E] animate-spin mb-4" />
+        <p className="text-[#7B341E]">Loading property details...</p>
       </div>
+    );
+  }
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Image Gallery */}
-            <div className="bg-white rounded-xl border-2 border-[#7B341E] shadow-sm p-6">
+  if (error || !property) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h2 className="text-2xl font-bold text-[#7B341E] mb-4">
+          {error || 'Property not found'}
+        </h2>
+        <p className="text-[#7B341E]/70 mb-8">
+          We couldn't find the property you're looking for.
+        </p>
+        <Link href="/properties">
+          <Button className="bg-[#7B341E] text-white hover:bg-[#266044]">
+            View All Properties
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Property Images */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="space-y-4">
+          <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden">
+            <img
+              src={property.images[selectedImage].url}
+              alt={property.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
         <div className="grid grid-cols-4 gap-4">
-          {mockProperty.images.map((image, index) => (
+            {property.images.map((image, index) => (
             <button
-              key={index}
+                key={image.publicId}
               onClick={() => setSelectedImage(index)}
-                    className={`relative aspect-w-16 aspect-h-9 transition-transform duration-300 hover:scale-105 ${
-                      selectedImage === index ? 'ring-2 ring-[#266044]' : ''
+                className={`aspect-w-16 aspect-h-9 rounded-lg overflow-hidden border-2 ${
+                  selectedImage === index ? 'border-[#7B341E]' : 'border-transparent'
               }`}
             >
               <img
-                src={image}
-                alt={`Property thumbnail ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg"
+                  src={image.url}
+                  alt={`${property.title} - Image ${index + 1}`}
+                  className="w-full h-full object-cover"
               />
             </button>
           ))}
         </div>
       </div>
 
-            {/* Property Features */}
-            <div className="bg-[#FFE4C9] rounded-xl border-2 border-[#7B341E] shadow-sm p-8">
-              <div className="grid grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-white rounded-lg border-2 border-[#7B341E]">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-[#266044]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  <p className="text-[#7B341E] font-medium">Bedrooms</p>
-                  <p className="text-2xl font-bold text-[#7B341E]">{mockProperty.features.bedrooms}</p>
-                </div>
-                <div className="text-center p-4 bg-white rounded-lg border-2 border-[#7B341E]">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-[#266044]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <p className="text-[#7B341E] font-medium">Bathrooms</p>
-                  <p className="text-2xl font-bold text-[#7B341E]">{mockProperty.features.bathrooms}</p>
-                </div>
-                <div className="text-center p-4 bg-white rounded-lg border-2 border-[#7B341E]">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-[#266044]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                  </svg>
-                  <p className="text-[#7B341E] font-medium">Square Feet</p>
-                  <p className="text-2xl font-bold text-[#7B341E]">{mockProperty.features.squareFeet}</p>
+        {/* Property Details */}
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="px-3 py-1 bg-[#FFE4C9] text-[#7B341E] rounded-full text-sm font-medium">
+                For {property.listingType === 'rent' ? 'Rent' : 'Sale'}
+              </span>
+              <span className="px-3 py-1 bg-[#266044] text-white rounded-full text-sm font-medium">
+                {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
+              </span>
             </div>
+            <h1 className="text-3xl font-bold text-[#7B341E] mb-2">{property.title}</h1>
+            <div className="flex items-center text-[#7B341E]/70">
+              <MapPin className="w-5 h-5 mr-2" />
+              <span>
+                {property.location.address}, {property.location.city}, {property.location.state} {property.location.zipCode}
+              </span>
             </div>
           </div>
 
-            {/* Description */}
-            <div className="bg-white rounded-xl border-2 border-[#7B341E] shadow-sm p-8">
-              <h2 className="text-2xl font-semibold text-[#7B341E] mb-4">About this property</h2>
-              <p className="text-[#7B341E]/70 leading-relaxed">{mockProperty.description}</p>
+          <div className="flex items-center justify-between py-4 border-y-2 border-[#7B341E]/20">
+            <div className="text-center">
+              <Bed className="w-6 h-6 mx-auto text-[#7B341E] mb-1" />
+              <span className="block text-sm text-[#7B341E]/70">Bedrooms</span>
+              <span className="block font-semibold text-[#7B341E]">{property.features.bedrooms}</span>
+            </div>
+            <div className="text-center">
+              <Bath className="w-6 h-6 mx-auto text-[#7B341E] mb-1" />
+              <span className="block text-sm text-[#7B341E]/70">Bathrooms</span>
+              <span className="block font-semibold text-[#7B341E]">{property.features.bathrooms}</span>
+                </div>
+            <div className="text-center">
+              <Square className="w-6 h-6 mx-auto text-[#7B341E] mb-1" />
+              <span className="block text-sm text-[#7B341E]/70">Square Feet</span>
+              <span className="block font-semibold text-[#7B341E]">{property.features.squareFeet}</span>
+            </div>
+            <div className="text-center">
+              <Car className="w-6 h-6 mx-auto text-[#7B341E] mb-1" />
+              <span className="block text-sm text-[#7B341E]/70">Parking</span>
+              <span className="block font-semibold text-[#7B341E]">{property.features.parking || 0}</span>
+            </div>
+            <div className="text-center">
+              <Home className="w-6 h-6 mx-auto text-[#7B341E] mb-1" />
+              <span className="block text-sm text-[#7B341E]/70">Type</span>
+              <span className="block font-semibold text-[#7B341E]">{property.features.propertyType}</span>
+            </div>
           </div>
 
-            {/* Amenities */}
-            <div className="bg-[#E8F5E9] rounded-xl border-2 border-[#7B341E] shadow-sm p-8">
-              <h2 className="text-2xl font-semibold text-[#7B341E] mb-6">Featured Amenities</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {mockProperty.amenities.map((amenity) => (
-                  <div key={amenity} className="flex items-center bg-white p-4 rounded-lg border-2 border-[#7B341E]">
-                  <svg
-                      className="w-6 h-6 text-[#266044] mr-3 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                    <span className="text-[#7B341E] font-medium">{amenity}</span>
+          <div>
+            <h2 className="text-xl font-semibold text-[#7B341E] mb-4">Description</h2>
+            <p className="text-[#7B341E]/70 whitespace-pre-line">{property.description}</p>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-[#7B341E] mb-4">Amenities</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {property.amenities.map((amenity) => (
+                <div key={amenity} className="flex items-center text-[#7B341E]/70">
+                  <Check className="w-5 h-5 mr-2 text-[#266044]" />
+                  <span>{amenity}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
+      </div>
 
-          {/* Sidebar */}
-        <div className="lg:col-span-1">
-            <div className="sticky top-8 space-y-8">
-              {/* Price Card */}
-              <div className="bg-white rounded-xl border-2 border-[#7B341E] shadow-sm p-8">
+      {/* Price and Contact Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-2">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-[#7B341E] mb-4">About this property</h2>
+            <div className="prose text-[#7B341E]/70">
+              <p>
+                This {property.features.propertyType.toLowerCase()} is currently available for{' '}
+                {property.listingType === 'rent' ? 'rent' : 'sale'} in {property.location.city}.
+                {property.features.furnished && ' The property comes fully furnished.'}
+              </p>
+              <p className="mt-4">
+                With {property.features.bedrooms} bedrooms and {property.features.bathrooms} bathrooms,
+                this {property.features.squareFeet} square foot property is perfect for{' '}
+                {property.features.bedrooms > 2 ? 'families' : 'individuals or couples'}.
+              </p>
+              {property.features.parking && property.features.parking > 0 && (
+                <p className="mt-4">
+                  The property includes {property.features.parking} parking space
+                  {property.features.parking > 1 ? 's' : ''}.
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-6">
             <div className="text-center mb-6">
-                  <p className="text-4xl font-bold text-[#266044]">${mockProperty.price}</p>
-                  <p className="text-[#7B341E]/70 text-lg">per month</p>
+              <div className="text-3xl font-bold text-[#7B341E]">
+                {formatPrice(property.price.amount)}
+                {property.listingType === 'rent' && property.price.frequency && (
+                  <span className="text-lg font-normal">
+                    /{property.price.frequency === 'yearly' ? 'yr' : 'mo'}
+                  </span>
+                )}
+              </div>
+              {property.price.type === 'negotiable' && (
+                <span className="text-sm text-[#7B341E]/70">Price is negotiable</span>
+              )}
             </div>
 
-            {showContactForm ? (
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                      className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
-                  value={contactForm.name}
-                  onChange={(e) =>
-                    setContactForm({ ...contactForm, name: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  type="email"
-                  placeholder="Your Email"
-                      className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
-                  value={contactForm.email}
-                  onChange={(e) =>
-                    setContactForm({ ...contactForm, email: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  type="tel"
-                  placeholder="Your Phone"
-                      className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
-                  value={contactForm.phone}
-                  onChange={(e) =>
-                    setContactForm({ ...contactForm, phone: e.target.value })
-                  }
-                />
-                <textarea
-                  placeholder="Your Message"
-                      className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
-                  rows={4}
-                  value={contactForm.message}
-                  onChange={(e) =>
-                    setContactForm({ ...contactForm, message: e.target.value })
-                  }
-                  required
-                />
-                    <Button 
-                      type="submit" 
-                      fullWidth
-                      className="bg-[#7B341E] hover:bg-[#266044] text-white transition-colors"
-                    >
-                  Send Message
-                </Button>
-              </form>
-            ) : (
+            {!showContactForm ? (
               <div className="space-y-4">
                 <Button
-                  fullWidth
-                      className="bg-[#7B341E] hover:bg-[#266044] text-white transition-colors"
+                  className="w-full bg-[#7B341E] text-white hover:bg-[#266044]"
                   onClick={() => setShowContactForm(true)}
                 >
-                  Contact Landlord
+                  Contact {property.listingType === 'rent' ? 'Landlord' : 'Agent'}
                 </Button>
                 <Button
                   variant="outline"
-                  fullWidth
-                      className="border-2 border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white"
+                  className="w-full border-[#7B341E] text-[#7B341E] hover:bg-[#7B341E] hover:text-white"
                 >
-                  Schedule Viewing
+                  Save Property
                 </Button>
               </div>
-            )}
+            ) : (
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-[#7B341E] mb-1">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
+                    required
+                  />
               </div>
-
-              {/* Landlord Info */}
-              <div className="bg-[#FFE4C9] rounded-xl border-2 border-[#7B341E] shadow-sm p-6">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-[#7B341E] flex items-center justify-center text-white text-xl font-bold">
-                    {mockProperty.landlord.name.charAt(0)}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-[#7B341E] mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
+                    required
+                  />
                   </div>
                   <div>
-                    <p className="font-medium text-[#7B341E]">Listed by</p>
-                    <p className="text-lg font-semibold text-[#7B341E]">{mockProperty.landlord.name}</p>
-                  </div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-[#7B341E] mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
+                  />
                 </div>
-                <div className="space-y-2 text-[#7B341E]/70">
-                  <p className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    {mockProperty.landlord.email}
-                  </p>
-                  <p className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    {mockProperty.landlord.phone}
-                  </p>
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-[#7B341E] mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    id="message"
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-lg bg-transparent border-2 border-[#7B341E] focus:outline-none focus:ring-2 focus:ring-[#7B341E] placeholder-[#7B341E]/50 text-[#7B341E]"
+                    required
+                    defaultValue={`Hi, I am interested in this ${property.features.propertyType.toLowerCase()} for ${property.listingType}. Please contact me with more information.`}
+                  />
                 </div>
-              </div>
-            </div>
+                <Button type="submit" className="w-full bg-[#7B341E] text-white hover:bg-[#266044]">
+                  Send Message
+                </Button>
+              </form>
+            )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

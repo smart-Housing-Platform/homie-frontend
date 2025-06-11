@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   name: string;
   role: 'tenant' | 'landlord' | 'admin';
@@ -9,10 +9,15 @@ export interface User {
 }
 
 export interface Property {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  price: number;
+  listingType: 'rent' | 'sale';
+  price: {
+    amount: number;
+    frequency?: 'monthly' | 'yearly' | null;
+    type: 'fixed' | 'negotiable';
+  };
   location: {
     address: string;
     city: string;
@@ -29,42 +34,60 @@ export interface Property {
     squareFeet: number;
     propertyType: string;
     yearBuilt?: number;
+    parking?: number;
+    furnished: boolean;
   };
   amenities: string[];
-  images: string[];
+  images: Array<{
+    url: string;
+    publicId: string;
+  }>;
   landlordId: string;
-  status: 'available' | 'rented' | 'pending';
+  status: 'available' | 'rented' | 'sold' | 'pending';
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface PropertyFilter {
   location?: string;
+  listingType?: 'rent' | 'sale';
   minPrice?: number;
   maxPrice?: number;
+  priceFrequency?: 'monthly' | 'yearly';
   bedrooms?: number;
   bathrooms?: number;
   propertyType?: string;
   amenities?: string[];
+  furnished?: boolean;
 }
 
-export interface ApplicationStatus {
-  id: string;
+export interface Application {
+  _id: string;
   propertyId: string;
   tenantId: string;
   status: 'pending' | 'approved' | 'rejected';
-  submittedAt: Date;
+  creditScore: number;
+  income: number;
+  documents: Array<{
+    url: string;
+    publicId: string;
+  }>;
+  createdAt: Date;
   updatedAt: Date;
 }
 
 export interface MaintenanceRequest {
-  id: string;
+  _id: string;
   propertyId: string;
   tenantId: string;
   title: string;
   description: string;
   priority: 'low' | 'medium' | 'high';
   status: 'pending' | 'in_progress' | 'completed';
+  images: Array<{
+    url: string;
+    publicId: string;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 } 
